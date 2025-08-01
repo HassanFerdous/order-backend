@@ -1,6 +1,6 @@
 services:
   backend:
-    container_name: drizzle_express
+    container_name: order_backend
     build: .
     ports:
       - ${PORT}:${PORT}
@@ -40,7 +40,7 @@ services:
           path: package.json
 
   postgres:
-    container_name: drizzle_postgres
+    container_name: order_postgres
     image: postgres:15-alpine
     restart: always
     ports:
@@ -52,9 +52,21 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
   redis:
-    container_name: redis_cache
+    container_name: order_redis
     image: redis:8-alpine
     ports:
       - "6379:6379"
+  rabbitmq:
+    container_name: order_rabbitmq
+    image: rabbitmq:3.13.7-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 volumes:
   pgdata:
+  rabbitmq_data:

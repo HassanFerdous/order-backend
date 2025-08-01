@@ -3,7 +3,7 @@ import { db } from "@/config/db";
 import { usersTable, userTokensTable } from "@/db/schema";
 import { generateOTP, saveOTP, verifyOTP } from "@/lib/otp";
 import redis from "@/lib/redis";
-import { sendOtpEmailJob } from "@/queues/email.producer";
+import { sendOtpEmailJob } from "@/workers/email.producer";
 import { setAuthCookies, TokenOptions } from "@/utils/cookie";
 import { AppError, throwError } from "@/utils/error";
 import {

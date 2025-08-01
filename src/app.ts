@@ -17,7 +17,7 @@ import viewsRouter from "./routes/view-routes";
 import "@domains/v1/auth/passport";
 import path from "node:path";
 import swaggerRouter from "./swagger";
-import initWorkders from "./queues";
+import initWorkders from "./workers";
 
 /******** Initialize Express App ********/
 const app = express();
