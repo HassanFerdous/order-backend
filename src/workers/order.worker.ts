@@ -1,14 +1,14 @@
 import workerConfig from "@/config/worker-config";
-import { NewOrder, Order, OrderServices } from "@/domains/v1/order/service";
+import { Order } from "@/domains/v1/order/service";
+import { User } from "@/domains/v1/user/service";
+import { sendEmail } from "@/lib/mailer";
 import connectRabbitMQ from "@/lib/rabbitmq";
 import { ConsumeMessage } from "amqplib";
-import EmailWorker, { EmailJobType } from "./email.worker";
 import { EmailPayload } from "..";
-import { User } from "@/domains/v1/user/service";
 
 // Order job type
 export type OrderJob =
-	| "confirmed-order"
+	| "created"
 	| "update"
 	| "delete"
 	| "cancel"
@@ -31,12 +31,12 @@ export default class OrderWorker {
 			workerConfig.order.type,
 			{ durable: true }
 		);
-		// 2. Assert the queue
+		//Assert the queue
 		await this.channel.assertQueue(workerConfig.order.queue, {
 			durable: true
 		});
 
-		// 3. Bind the queue to the exchange using routing key
+		//Bind the queue to the exchange using routing key
 		await this.channel.bindQueue(
 			workerConfig.order.queue,
 			workerConfig.order.exchange,
@@ -62,6 +62,7 @@ export default class OrderWorker {
 				if (msg) {
 					const data = JSON.parse(msg.content.toString()) as Order & {
 						jobType: OrderJob;
+						user: User;
 					};
 					console.log("📧 Received order from Queue");
 					await this.#handleJob(data.jobType, data);
@@ -71,11 +72,11 @@ export default class OrderWorker {
 		);
 	}
 
-	async #handleJob(jobType: OrderJob, data: Order) {
+	async #handleJob(jobType: OrderJob, data: Order & { user: User }) {
 		switch (jobType) {
-			case "confirmed-order":
+			case "created":
 				// Create order
-				await this.#confirmedOrder(data);
+				await this.#createdOrder(data);
 				break;
 			case "update":
 				// Update order
@@ -95,8 +96,8 @@ export default class OrderWorker {
 		}
 	}
 
-	async #confirmedOrder(order: any) {
-		await this.#sendEmail("confirmed-order", {
+	async #createdOrder(order: Order & { user: User }) {
+		await this.#sendEmail({
 			subject: "🎉 Order Confirmation",
 			to: order?.user?.email, // or user's email from your system
 			html: `
@@ -127,9 +128,8 @@ export default class OrderWorker {
 		});
 	}
 
-	async #sendEmail(jobType: OrderJob, data: EmailPayload) {
-		const emailWorker = new EmailWorker();
-		await emailWorker.send(jobType as EmailJobType, data);
+	async #sendEmail(data: EmailPayload) {
+		await sendEmail(data);
 	}
 
 	static start() {

@@ -4,8 +4,7 @@ import { ConsumeMessage } from "amqplib";
 import { EmailPayload } from "..";
 import { sendEmail } from "@/lib/mailer";
 
-export type EmailJobType = "send-otp" | "confirmed-order";
-
+export type EmailJobType = "send-otp";
 export default class EmailWorker {
 	connection: any;
 	channel: any;
@@ -77,13 +76,6 @@ export default class EmailWorker {
 	}
 
 	/**
-	 * Send confirmed order email
-	 */
-	async #sendConfirmedOrder(data: EmailPayload) {
-		await sendEmail(data);
-	}
-
-	/**
 	 * Handle the job
 	 */
 	async #handleJob(
@@ -93,9 +85,6 @@ export default class EmailWorker {
 		switch (jobType) {
 			case "send-otp":
 				await this.#sendOTP(data);
-				break;
-			case "confirmed-order":
-				await this.#sendConfirmedOrder(data);
 				break;
 			default:
 				break;

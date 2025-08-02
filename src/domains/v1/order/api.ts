@@ -21,7 +21,7 @@ router.post(
 			userId: user.id
 		});
 		const orderWorker = new OrderWorker();
-		await orderWorker.send("confirmed-order", { ...data, user: user });
+		await orderWorker.send("created", { ...data, user: user });
 		sendSuccess(res, data, 201, "Successfully created new order!");
 	}
 );
