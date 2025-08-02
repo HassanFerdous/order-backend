@@ -10,3 +10,11 @@ export type AuthTokenPayload = {
 	user: User;
 	sid: string;
 };
+
+export type EmailPayload = {
+	to: string;
+	subject: string;
+	html?: string;
+	text?: string;
+	from?: string;
+};

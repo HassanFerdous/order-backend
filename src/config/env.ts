@@ -37,7 +37,13 @@ const envSchema = z.object({
 	SMTP_PORT: z.string().nonempty(),
 	SMTP_USER: z.string().nonempty(),
 	SMTP_PASS: z.string().nonempty(),
-	SMTP_FROM: z.string().nonempty()
+	SMTP_FROM: z.string().nonempty(),
+
+	// RabbitMQ credentials
+	RABBITMQ_HOST: z.string().nonempty(),
+	RABBITMQ_PORT: z.string().nonempty(),
+	RABBITMQ_DEFAULT_USER: z.string().nonempty(),
+	RABBITMQ_DEFAULT_PASS: z.string().nonempty()
 });
 
 // Validate and parse

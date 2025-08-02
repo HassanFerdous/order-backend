@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { config } from "@/config";
+import { EmailPayload } from "..";
 
 const transporter = nodemailer.createTransport({
 	host: config.smtp.SMTP_HOST,
@@ -17,13 +18,7 @@ export const sendEmail = async ({
 	html,
 	text = "",
 	from = `${config.smtp.SMTP_FROM || config.smtp.SMTP_USER}`
-}: {
-	to: string;
-	subject: string;
-	html?: string;
-	text?: string;
-	from?: string;
-}) => {
+}: EmailPayload) => {
 	const info = await transporter.sendMail({
 		from,
 		to,

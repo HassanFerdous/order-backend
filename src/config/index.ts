@@ -29,5 +29,11 @@ export const config = {
 		SMTP_USER: env.SMTP_USER,
 		SMTP_PASS: env.SMTP_PASS,
 		SMTP_FROM: env.SMTP_FROM
+	},
+	rabbitmq: {
+		host: env.RABBITMQ_HOST,
+		port: env.RABBITMQ_PORT,
+		defaultUser: env.RABBITMQ_DEFAULT_USER,
+		defaultPass: env.RABBITMQ_DEFAULT_PASS
 	}
 };

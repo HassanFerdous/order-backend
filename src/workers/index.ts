@@ -1,9 +1,11 @@
-import { startEmailWorker } from "./email.worker";
+// import { startEmailWorker } from "./email.worker";
 
-function initWorkders() {
+import { emailConsumer } from "./email";
+
+function initWorkers() {
 	console.log("🚀 Initializing all workers...");
-	startEmailWorker();
+	emailConsumer();
 	console.log("✅ All workers initialized");
 }
 
-export default initWorkders;
+export default initWorkers;
