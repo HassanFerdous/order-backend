@@ -5,6 +5,7 @@ import express, { Request, Response } from "express";
 import { User } from "../user/service";
 import { OrderServices } from "./service";
 import { createOrderSchema } from "./validation";
+import OrderWorker from "@/workers/order.worker";
 
 const router = express.Router();
 
@@ -19,6 +20,8 @@ router.post(
 			...req.body,
 			userId: user.id
 		});
+		const orderWorker = new OrderWorker();
+		await orderWorker.send("confirmed-order", { ...data, user: user });
 		sendSuccess(res, data, 201, "Successfully created new order!");
 	}
 );

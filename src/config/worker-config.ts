@@ -9,12 +9,16 @@ const workerConfig = {
 	order: {
 		queue: "order-queue",
 		exchange: "order.topic",
-		routingKey: "order.#"
+		routingKey: "order.#",
+		type: "topic",
+		maxRetries: 3
 	},
 	payment: {
 		queue: "payment-queue",
 		exchange: "payment.topic",
-		routingKey: "payment.#"
+		routingKey: "payment.#",
+		type: "topic",
+		maxRetries: 3
 	}
 };
 

@@ -4,7 +4,7 @@ import { ConsumeMessage } from "amqplib";
 import { EmailPayload } from "..";
 import { sendEmail } from "@/lib/mailer";
 
-type EmailJobType = "send-otp" | "send-welcome" | "send-password-reset";
+export type EmailJobType = "send-otp" | "confirmed-order";
 
 export default class EmailWorker {
 	connection: any;
@@ -21,6 +21,17 @@ export default class EmailWorker {
 			workerConfig.email.exchange,
 			workerConfig.email.type,
 			{ durable: true }
+		);
+		// 2. Assert the queue
+		await this.channel.assertQueue(workerConfig.email.queue, {
+			durable: true
+		});
+
+		// 3. Bind the queue to the exchange using routing key
+		await this.channel.bindQueue(
+			workerConfig.email.queue,
+			workerConfig.email.exchange,
+			workerConfig.email.routingKey
 		);
 		console.log("📨 EmailWorker initialized");
 	}
@@ -51,7 +62,6 @@ export default class EmailWorker {
 					) as EmailPayload & {
 						jobType: EmailJobType;
 					};
-					console.log("📧 Received email from Queue", data);
 					await this.#handleJob(data.jobType, data);
 					this.channel.ack(msg);
 				}
@@ -67,6 +77,13 @@ export default class EmailWorker {
 	}
 
 	/**
+	 * Send confirmed order email
+	 */
+	async #sendConfirmedOrder(data: EmailPayload) {
+		await sendEmail(data);
+	}
+
+	/**
 	 * Handle the job
 	 */
 	async #handleJob(
@@ -76,6 +93,9 @@ export default class EmailWorker {
 		switch (jobType) {
 			case "send-otp":
 				await this.#sendOTP(data);
+				break;
+			case "confirmed-order":
+				await this.#sendConfirmedOrder(data);
 				break;
 			default:
 				break;

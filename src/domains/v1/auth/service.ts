@@ -21,7 +21,7 @@ import { JwtPayload } from "jsonwebtoken";
 import passport from "passport";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../user/service";
-import EmailWorker from "@/workers/email";
+import EmailWorker from "@/workers/email.worker";
 
 export type UserRefreshToken = InferSelectModel<typeof userTokensTable>;
 export type NewRefreshToken = InferInsertModel<typeof userTokensTable>;
@@ -77,6 +77,10 @@ export const AuthServices = {
 			async (err: any, user: User, info: any) => {
 				if (err || !user) next(new AppError("Invalid credentials", 401));
 				const { data, tokens } = await generateUserTokens(user);
+				await UserServices.createUserRefreshToken({
+					userId: user.id,
+					refreshToken: tokens.refresh_token as string
+				});
 				setAuthCookies(res, tokens as TokenOptions);
 				// Success — you can return user data or generate JWT
 				return sendSuccess(res, data, 200, "Login successful");
@@ -92,6 +96,10 @@ export const AuthServices = {
 				if (err) return next(err);
 				if (!user) return res.redirect("/login?error=OAuthFailed");
 				const { tokens, redirectUrl } = await generateOneTimeCode(user);
+				await UserServices.createUserRefreshToken({
+					userId: user.id,
+					refreshToken: tokens.refresh_token as string
+				});
 				setAuthCookies(res, tokens as TokenOptions);
 				return res.redirect(redirectUrl);
 			}
@@ -114,7 +122,7 @@ export const AuthServices = {
 				user: User;
 			};
 			if (decodeded.exp! > Date.now())
-				return throwError("Invalid Token", 401);
+				return throwError("Invalid Refresh Token", 401);
 			const storedToken = await UserServices.getUserRefreshToken(
 				decodeded.user.id
 			);
@@ -137,7 +145,8 @@ export const AuthServices = {
 				"Successfully generated Access Token!!"
 			);
 		} catch (error) {
-			throwError("Invalid Token", 401);
+			console.log(error);
+			throwError("Invalid Refresh Token ", 401);
 		}
 	},
 
