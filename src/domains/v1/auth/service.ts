@@ -21,7 +21,7 @@ import { JwtPayload } from "jsonwebtoken";
 import passport from "passport";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../user/service";
-import { emailWorker } from "@/workers/email";
+import EmailWorker from "@/workers/email";
 
 export type UserRefreshToken = InferSelectModel<typeof userTokensTable>;
 export type NewRefreshToken = InferInsertModel<typeof userTokensTable>;
@@ -176,7 +176,8 @@ export const AuthServices = {
 			);
 		const otp = generateOTP();
 		await saveOTP(user.id, otp);
-		await emailWorker({
+		const emailWorker = new EmailWorker();
+		await emailWorker.send("send-otp", {
 			subject: "🔐 Password Reset Code",
 			to: config.smtp.SMTP_USER,
 			html: `

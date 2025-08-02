@@ -1,11 +1,15 @@
-// import { startEmailWorker } from "./email.worker";
+import EmailWorker from "./email";
 
-import { emailConsumer } from "./email";
-
-function initWorkers() {
+async function startWorkers() {
 	console.log("🚀 Initializing all workers...");
-	emailConsumer();
-	console.log("✅ All workers initialized");
+	try {
+		await EmailWorker.start(); // Assuming start is an async method
+		console.log("✅ Email worker started and consuming");
+		console.log("✅ All workers initialized");
+	} catch (error) {
+		console.error("❌ Failed to start Email worker:", error);
+		process.exit(1);
+	}
 }
 
-export default initWorkers;
+export default startWorkers;

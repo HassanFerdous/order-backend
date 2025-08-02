@@ -17,14 +17,15 @@ import viewsRouter from "./routes/view-routes";
 import "@domains/v1/auth/passport";
 import path from "node:path";
 import swaggerRouter from "./swagger";
-import initWorkders from "./workers";
+import startWorkers from "./workers";
 
 /******** Initialize Express App ********/
 const app = express();
 
 /********  Boot all workers ********/
-initWorkders();
+startWorkers();
 
+/********  Middlewares ********/
 dotenv.config();
 app.use(cors());
 app.use(cookieParser());
