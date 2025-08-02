@@ -5,6 +5,7 @@ import authRoutes from "@domains/v1/auth";
 import usersRoutes from "@domains/v1/user";
 import rolesRoutes from "@domains/v1/role";
 import permissionsRoutes from "@domains/v1/permission";
+import orderRoutes from "@domains/v1/order";
 import { sql } from "drizzle-orm";
 import { Router } from "express";
 const router = Router();
@@ -50,6 +51,7 @@ function defineRoutes(expressRouter: Router) {
 	usersRoutes(expressRouter);
 	rolesRoutes(expressRouter);
 	permissionsRoutes(expressRouter);
+	orderRoutes(expressRouter);
 	// default routers
 	defaultRoutes(expressRouter);
 }
