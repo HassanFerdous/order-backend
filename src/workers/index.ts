@@ -1,3 +1,4 @@
+import DeadLetterWorker from "./deadletter.worker";
 import EmailWorker from "./email.worker";
 import OrderWorker from "./order.worker";
 
@@ -6,6 +7,7 @@ async function startWorkers() {
 	try {
 		await EmailWorker.start(); // Assuming start is an async method
 		await OrderWorker.start();
+		await DeadLetterWorker.start();
 		console.log("✅ All workers initialized");
 	} catch (error) {
 		console.error("❌ Failed to start workers:", error);

@@ -1,4 +1,4 @@
-import amqp, { Connection, Channel } from "amqplib";
+import amqp, { Channel, Connection } from "amqplib";
 import { config } from "@/config";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
