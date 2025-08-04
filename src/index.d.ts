@@ -1,5 +1,5 @@
 import { User } from "./domains/v1/user/service";
-
+export type ExchangeType = "topic" | "direct" | "fanout" | "headers";
 export type Session = {
 	csrf: string;
 	permissions: string;

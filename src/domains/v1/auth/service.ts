@@ -22,6 +22,7 @@ import passport from "passport";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../user/service";
 import EmailWorker from "@/workers/email.worker";
+import emailWorker from "@/workers/email.worker";
 
 export type UserRefreshToken = InferSelectModel<typeof userTokensTable>;
 export type NewRefreshToken = InferInsertModel<typeof userTokensTable>;
@@ -185,8 +186,7 @@ export const AuthServices = {
 			);
 		const otp = generateOTP();
 		await saveOTP(user.id, otp);
-		const emailWorker = new EmailWorker();
-		await emailWorker.send("send-otp", {
+		await emailWorker.send({
 			subject: "🔐 Password Reset Code",
 			to: config.smtp.SMTP_USER,
 			html: `
