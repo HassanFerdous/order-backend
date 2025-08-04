@@ -20,6 +20,15 @@ export default class EmailWorker {
 		this.connection = connection;
 		this.channel = channel;
 
+		// Setup Dead Letter Exchange
+		await this.channel.assertExchange("dlx", "direct", {
+			durable: true
+		});
+		await this.channel.assertQueue("dead_letter_queue", {
+			durable: true
+		});
+		await channel.bindQueue("dead_letter_queue", "dlx", "dead_letter");
+
 		// Setup Email Queue
 		this.channel.assertExchange(
 			workerConfig.email.exchange,
@@ -29,8 +38,8 @@ export default class EmailWorker {
 		await this.channel.assertQueue(workerConfig.email.queue, {
 			durable: true,
 			arguments: {
-				"x-dead-letter-exchange": workerConfig.retry.exchange,
-				"x-dead-letter-routing-key": workerConfig.retry.routingKey
+				"x-dead-letter-exchange": "dlx",
+				"x-dead-letter-routing-key": "dead_letter"
 			}
 		});
 		await this.channel.bindQueue(
@@ -67,8 +76,8 @@ export default class EmailWorker {
 					msg.content.toString()
 				) as EmailPayloadWithJobType;
 				try {
-					// if (Math.random() > 0.2)
-					// 	throw new Error("Failure Simulation error");
+					if (Math.random() > 0.4)
+						throw new Error("Failure Simulation error");
 					await this.#handleJob(data.jobType, data);
 					console.log("Email sent successfully");
 					this.channel.ack(msg);
@@ -113,6 +122,18 @@ export default class EmailWorker {
 				}
 			}
 		);
+
+		await this.channel.consume("dead_letter_queue", (msg) => {
+			if (msg !== null) {
+				// Log the content of the dead-lettered message
+				console.log(
+					"Received dead-lettered message:",
+					msg.content.toString()
+				);
+				// Acknowledge the message to remove it from the queue
+				this.channel.ack(msg);
+			}
+		});
 	}
 
 	/**
