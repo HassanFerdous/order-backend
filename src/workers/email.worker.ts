@@ -20,26 +20,17 @@ export default class EmailWorker {
 		this.connection = connection;
 		this.channel = channel;
 
-		// Setup Dead Letter Exchange
-		await this.channel.assertExchange("dlx", "direct", {
-			durable: true
-		});
-		await this.channel.assertQueue("dead_letter_queue", {
-			durable: true
-		});
-		await channel.bindQueue("dead_letter_queue", "dlx", "dead_letter");
-
 		// Setup Email Queue
 		this.channel.assertExchange(
-			workerConfig.email.exchange,
+			workerConfig.email.exchange!,
 			workerConfig.email.type,
 			{ durable: true }
 		);
 		await this.channel.assertQueue(workerConfig.email.queue, {
 			durable: true,
 			arguments: {
-				"x-dead-letter-exchange": "dlx",
-				"x-dead-letter-routing-key": "dead_letter"
+				"x-dead-letter-exchange": workerConfig.dead_letter.exchange,
+				"x-dead-letter-routing-key": workerConfig.retry.routingKey
 			}
 		});
 		await this.channel.bindQueue(
@@ -56,11 +47,15 @@ export default class EmailWorker {
 	 */
 	async send(jobType: EmailJobType, data: EmailPayload) {
 		if (!this.channel) await this.#init();
-		await this.channel.publish(
-			workerConfig.email.exchange,
-			`email.${jobType}`,
-			Buffer.from(JSON.stringify({ jobType, ...data }))
-		);
+		try {
+			await this.channel.publish(
+				workerConfig.email.exchange,
+				`email.${jobType}`,
+				Buffer.from(JSON.stringify({ jobType, ...data }))
+			);
+		} catch (error) {
+			console.log(error);
+		}
 	}
 
 	/**
@@ -68,70 +63,70 @@ export default class EmailWorker {
 	 */
 	async #consumer() {
 		if (!this.channel) await this.#init();
-		this.channel.consume(
-			workerConfig.email.queue,
-			async (msg: ConsumeMessage | null) => {
-				if (!msg) return;
-				const data = JSON.parse(
-					msg.content.toString()
-				) as EmailPayloadWithJobType;
+		await this.channel.consume(workerConfig.email.queue, (msg) => {
+			if (msg) {
 				try {
-					if (Math.random() > 0.4)
-						throw new Error("Failure Simulation error");
-					await this.#handleJob(data.jobType, data);
-					console.log("Email sent successfully");
-					this.channel.ack(msg);
-				} catch (error) {
+					// Check if this is a retry
 					const headers = msg.properties.headers || {};
-					let retries = parseInt(headers["x-retry-count"] || "0");
+					const retryCount = headers["x-retry-count"] || 0;
 
-					if (retries >= workerConfig.email.maxRetries) {
+					// For testing, always throw error unless it's the final retry
+					// In a real app, you'd have your actual processing logic here
+					if (retryCount < 3) {
+						throw new Error("Simulated error");
+					}
+
+					// If we get here, processing succeeded
+					console.log(
+						"✅ Message processed successfully after",
+						retryCount,
+						"retries"
+					);
+					this.channel.ack(msg);
+				} catch (error: any) {
+					const headers = msg.properties.headers || {};
+					// get retry count from headers
+					let retryCount = headers["x-retry-count"] || 0;
+
+					// increment retry count
+					retryCount++;
+
+					if (retryCount >= 3) {
 						console.log(
-							`Max retries exceeded. Sending to DLQ for: ${data.to}`
+							"❌ Max retries reached, sending to dead letter queue"
 						);
-						this.channel.nack(msg, false, false); // Send to DLQ via dead-letter-exchange
-					} else {
-						retries++;
-						console.log(`Retry ${retries} for email to: ${data.to}`);
-
-						// Clone headers with updated retry count and original routing info
-						const updatedHeaders = {
-							...headers,
-							"x-retry-count": retries,
-							"x-original-exchange":
-								headers["x-original-exchange"] ||
-								workerConfig.email.exchange,
-							"x-original-routing-key":
-								headers["x-original-routing-key"] ||
-								workerConfig.email.routingKey
-						};
-
-						// Manually ack to remove from current queue (retry will happen via new message)
-						this.channel.ack(msg);
-
-						// Re-publish to retry queue with updated headers
+						// Send to the actual dead letter queue, not the retry queue
 						this.channel.sendToQueue(
-							workerConfig.retry.queue,
+							workerConfig.dead_letter.queue,
 							msg.content,
 							{
-								headers: updatedHeaders,
-								persistent: true
+								headers: {
+									"x-retry-count": retryCount,
+									"x-error": error.message
+								}
 							}
 						);
+						// Acknowledge the original message
+						this.channel.ack(msg);
+						return;
 					}
-				}
-			}
-		);
 
-		await this.channel.consume("dead_letter_queue", (msg) => {
-			if (msg !== null) {
-				// Log the content of the dead-lettered message
-				console.log(
-					"Received dead-lettered message:",
-					msg.content.toString()
-				);
-				// Acknowledge the message to remove it from the queue
-				this.channel.ack(msg);
+					// Send to retry queue
+					console.log("🔄 Sending to retry queue, attempt", retryCount);
+					this.channel.sendToQueue(workerConfig.retry.queue, msg.content, {
+						headers: {
+							"x-retry-count": retryCount,
+							"x-original-error": error.message
+							// "x-original-exchange": workerConfig.email.exchange,
+							// "x-original-routing-key": workerConfig.email.routingKey
+						}
+					});
+
+					// IMPORTANT: Acknowledge the message from the main queue
+					// This prevents the message from being redelivered to the main queue
+					// and allows the retry mechanism to work
+					this.channel.ack(msg);
+				}
 			}
 		});
 	}
@@ -152,6 +147,7 @@ export default class EmailWorker {
 				await this.#sendOTP(data);
 				break;
 			default:
+				console.log("Unknown job type:", jobType);
 				break;
 		}
 	}

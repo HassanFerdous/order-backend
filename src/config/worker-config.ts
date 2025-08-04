@@ -1,3 +1,11 @@
+type WorkerConfig = {
+	queue: string;
+	type: string;
+	exchange: string;
+	routingKey: string;
+	maxRetries?: number;
+};
+
 const workerConfig = {
 	email: {
 		queue: "email.queue",
@@ -22,20 +30,19 @@ const workerConfig = {
 	},
 
 	// Dead letter queue
-	dlq: {
-		queue: "dlq.queue",
-		exchange: "dlq.dlx",
-		routingKey: "dlq.routingKey",
+	dead_letter: {
+		queue: "dead-letter.queue",
+		exchange: "dead-letter.direct",
+		routingKey: "dead-letter",
 		type: "direct",
 		maxRetries: 3
 	},
 	// Retry queue
 	retry: {
 		queue: "retry.queue",
-		exchange: "retry.exchange",
-		routingKey: "retry.routingKey",
-		type: "direct",
-		maxRetries: 3
+		exchange: "retry.direct",
+		routingKey: "retry",
+		type: "direct"
 	}
 };
 
