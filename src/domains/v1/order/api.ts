@@ -6,6 +6,7 @@ import { User } from "../user/service";
 import { OrderServices } from "./service";
 import { createOrderSchema } from "./validation";
 import OrderWorker from "@/workers/order.worker";
+import orderWorker from "@/workers/order.worker";
 
 const router = express.Router();
 
@@ -20,8 +21,10 @@ router.post(
 			...req.body,
 			userId: user.id
 		});
-		const orderWorker = new OrderWorker();
-		await orderWorker.send("created", { ...data, user: user });
+		await orderWorker.send({
+			jobType: "created",
+			data: { ...data, user: user }
+		});
 		sendSuccess(res, data, 201, "Successfully created new order!");
 	}
 );

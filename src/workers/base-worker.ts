@@ -185,6 +185,23 @@ export default class BaseWorker {
 			try {
 				await this.#config.onReceive?.(msg, this.#channel);
 			} catch (error: any) {
+				if (!this.#config.enableRetry) {
+					if (!this.#config.enableDLQ) {
+						console.log(
+							"Retry not enabled, DLQ not enabled, nacking message"
+						);
+						this.#channel.nack(msg, false, false);
+					} else {
+						console.log("Retry not enabled, sending to DLQ");
+						this.#channel.sendToQueue(this.#dlq, msg.content, {
+							headers: {
+								"x-retry-count": retryCount,
+								"x-error": error.message
+							}
+						});
+					}
+					return;
+				}
 				// increment retry count
 				retryCount++;
 
